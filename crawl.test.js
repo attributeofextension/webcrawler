@@ -1,7 +1,5 @@
 import { jest, test, expect } from "@jest/globals"
-import { getURLsFromHTML, isRelativeLink, getURLStringNoProtocol, addPathnameToBaseURL, crawlPage } from "./crawl.js"
-import * as url from "node:url";
-import {argv} from "node:process";
+import { getURLsFromHTML, isRelativeLink, getURLStringNoProtocol, addPathnameToBaseURL, crawlPage, addLinkToPages } from "./crawl.js"
 
 
 test.each([
@@ -45,6 +43,15 @@ test.each([
     },
 ])("testing getURLsFromHTML with htmlString:'\n $htmlString \n for baseURL: $baseUrl\nexpecting: $expected\n",({htmlString, baseUrl, expected }) => {
     expect(getURLsFromHTML(htmlString, baseUrl)).toEqual(expected)
+})
+
+test.each([
+    { baseURL: "http://www.crawler-test.com", pathname: "/one", pages: {}, expected: { "www.crawler-test.com/one": 1 }, },
+    { baseURL: "http://www.crawler-test.com", pathname: "/two", pages: { "www.crawler-test.com/two": 1 }, expected: { "www.crawler-test.com/two": 2 } },
+    { baseURL: "http://www.crawler-test.com", pathname: "/three", pages: { "www.crawler-test.com/two": 2 }, expected: { "www.crawler-test.com/two": 2, "www.crawler-test.com/three": 1 } },
+])("testing addLinkToPages with $baseURL, $pathname and $pages expecting: $expected", ({ baseURL, pathname, pages, expected }) => {
+    addLinkToPages(baseURL, pathname, pages)
+    expect(pages).toEqual(expected)
 })
 
 global.fetch = jest.fn((url) => {
@@ -122,5 +129,12 @@ test("test crawlPage with fetch mock", () => {
         })
         expect(Object.keys(pages)).not.toContain("www.crawler-test.com/disconnected")
         expect(global.fetch).toHaveBeenCalledTimes(7)
+        expect(alreadyCrawledOrCrawling.sort((a,b) => a.localeCompare(b))).toEqual([
+            "www.crawler-test.com",
+            "www.crawler-test.com/one",
+            "www.crawler-test.com/two",
+            "www.crawler-test.com/three",
+            "www.crawler-test.com/three/four",
+        ].sort((a,b) => a.localeCompare(b)))
     })
 })
