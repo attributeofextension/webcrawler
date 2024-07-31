@@ -30,27 +30,18 @@ function isRelativeLink(url) {
     return urlObject.protocol === "relative:" && url === `${urlObject.pathname}${urlObject.search}${urlObject.hash}`
 }
 
-function crawlPage(baseURL, currentURL=baseURL, pages = {}, depth = 0) {
-    if(Object.keys(pages).findIndex(key => getURLStringNoProtocol(currentURL) === key) > -1 ) {
+function crawlPage(baseURL, currentURL=baseURL, pages = {}, alreadyCrawledOrCurrentlyCrawling = []) {
+    if(alreadyCrawledOrCurrentlyCrawling.findIndex(url => getURLStringNoProtocol(currentURL) === url) > -1) {
         return Promise.resolve([false, `Already crawled ${getURLStringNoProtocol(currentURL)}`])
     }
-
 
     return new Promise((resolve, reject) => {
         fetch(currentURL).then(response => {
             if (!response.ok) {
                 // resolve with [false, error message] because reject or throwing an exception will halt promise.all
-                if (!pages[getURLStringNoProtocol(currentURL)]) {
-                    pages[getURLStringNoProtocol(currentURL)] = [0, 0]
-                }
-                pages[getURLStringNoProtocol(currentURL)][1]++
                 resolve([false, `Could not crawl page at ${getURLStringNoProtocol(currentURL)} because ${response.statusText}`]);
             } else if (!response.headers.get("content-type") || !response.headers.get("content-type").startsWith("text/html")) {
                 // resolve with [false, error message] because reject or throwing an exception will halt promise.all
-                if (!pages[getURLStringNoProtocol(currentURL)]) {
-                    pages[getURLStringNoProtocol(currentURL)] = 0
-                }
-                pages[getURLStringNoProtocol(currentURL)]++
                 resolve([false, `Could not crawl page at ${getURLStringNoProtocol(currentURL)} since page was content-type "${response.headers.get("content-type")}", not "text/html"`]);
             } else {
                 response.text().then(html => {
@@ -77,10 +68,10 @@ function crawlPage(baseURL, currentURL=baseURL, pages = {}, depth = 0) {
                         } catch (e) {
                             continue
                         }
-
                     }
+                    alreadyCrawledOrCurrentlyCrawling.push(getURLStringNoProtocol(currentURL))
                     Promise.all(
-                        links.filter(link => isRelativeLink(link)).map(link => crawlPage(baseURL, addPathnameToBaseURL(baseURL, link), pages, depth + 1))
+                        links.filter(link => isRelativeLink(link)).map(link => crawlPage(baseURL, addPathnameToBaseURL(baseURL, link), pages, alreadyCrawledOrCurrentlyCrawling))
                     ).then(results => {
                         results.forEach(result => {
                             if (result.length === 2 && !result[0]) {
