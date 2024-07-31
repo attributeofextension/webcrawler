@@ -12,7 +12,12 @@ function getURLsFromHTML(html_string, baseURL) {
 
 function getURLStringNoProtocol(url) {
     const urlObject = new URL(url)
-    return urlObject.pathname.endsWith("/") ? `${urlObject.hostname}${urlObject.pathname.slice(0,-1)}` : `${urlObject.hostname}${urlObject.pathname}`
+    let pathname = urlObject.pathname
+
+    while (pathname.length > 0 && pathname.endsWith("/")) {
+        pathname = pathname.substring(0, pathname.length - 1);
+    }
+    return `${urlObject.hostname}${pathname}`
 }
 
 function addPathnameToBaseURL(baseURL, pathname) {
@@ -22,7 +27,7 @@ function addPathnameToBaseURL(baseURL, pathname) {
 
 function isRelativeLink(url) {
     const urlObject = new URL(url, "relative://")
-    return urlObject.hostname !== "relative" && url === `${urlObject.pathname}${urlObject.searchParams}${urlObject.hash}`
+    return urlObject.protocol === "relative:" && url === `${urlObject.pathname}${urlObject.search}${urlObject.hash}`
 }
 
 function crawlPage(baseURL, currentURL=baseURL, pages = {}, depth = 0) {
@@ -95,4 +100,4 @@ function crawlPage(baseURL, currentURL=baseURL, pages = {}, depth = 0) {
     })
 }
 
-export { getURLsFromHTML, crawlPage, isRelativeLink }
+export { getURLsFromHTML, crawlPage, isRelativeLink, getURLStringNoProtocol, addPathnameToBaseURL }

@@ -1,29 +1,42 @@
 import { jest, test, expect } from "@jest/globals"
-import { normalizeURL, getURLsFromHTML, isRelativeLink } from "./crawl.js"
+import { getURLsFromHTML, isRelativeLink, getURLStringNoProtocol, addPathnameToBaseURL } from "./crawl.js"
+import * as url from "node:url";
 
 
 test.each([
-    { url: "http://blog.boot.dev/one", expected: false },
+    { url: "http://www.crawler-test.com/one", expected: false },
     { url: "two", expected: false },
     { url: "/three", expected: true },
     { url: "/four?five#six", expected: true },
     { url: "/seven/?eight#nine", expected: true },
-])("testing isRelativeLink with $link, expecting: $expected", ({ url, expected }) => {
+])("testing isRelativeLink with $url, expecting: $expected", ({ url, expected }) => {
     expect(isRelativeLink(url)).toBe(expected);
     if (isRelativeLink(url)) {
         const baseURL = "resolved://base.test"
         expect((new URL(url, baseURL)).toString()).toEqual(baseURL + url)
     }
 })
+test.each([
+    { url: "http://www.crawler-test.com/", expected: "www.crawler-test.com" },
+    { url: "http://www.crawler-test.com/one", expected: "www.crawler-test.com/one" },
+    { url: "https://www.crawler-test.com/two/", expected: "www.crawler-test.com/two" },
+    { url: "http://www.crawler-test.com/three//", expected: "www.crawler-test.com/three" },
+    { url: "http://www.crawler-test.com/four?five#six", expected: "www.crawler-test.com/four" },
+])("testing getURLStringNoProtocol with $url, expecting: $expected", ({ url, expected }) => {
+    expect(getURLStringNoProtocol(url)).toEqual(expected)
+})
 
-// test.each([
-//     { url: "https://blog.boot.dev/path/", link: "/path", expected: "blog.boot.dev/path" },
-//     { url: "https://blog.boot.dev/path", link: "/path", expected: "blog.boot.dev/path" },
-//     { url: "http://blog.boot.dev/path/", link: "/path/", expected: "blog.boot.dev/path" },
-//     { url: "http://blog.boot.dev/path", link: "/path", expected: "blog.boot.dev/path" },
-// ])("testing normalizeURL with url: $url, link: $link and expecting: $expected", ({url, link, expected}) => {
-//     expect(normalizeURL(url,link)).toBe(expected)
-// })
+test.each([
+    { baseURL: "http://www.crawler-test.com", pathname: "/one", expected: "http://www.crawler-test.com/one" },
+    { baseURL: "https://www.crawler-test.com", pathname: "/two/", expected: "https://www.crawler-test.com/two/" },
+    { baseURL: "http://www.crawler-test.com", pathname: "/three//", expected: "http://www.crawler-test.com/three//" },
+    { baseURL: "https://www.crawler-test.com", pathname: "/four?five#six", expected: "https://www.crawler-test.com/four?five#six" },
+    { baseURL: "http://www.crawler-test.com/", pathname: "/seven", expected: "http://www.crawler-test.com/seven" },
+    { baseURL: "http://www.crawler-test.com", pathname: "eight", expected: "http://www.crawler-test.com/eight" },
+])("testing addPathnameToBaseURL with $baseURL and $pathname, expecting: $expected", ({ baseURL, pathname, expected}) => {
+    expect(addPathnameToBaseURL(baseURL, pathname)).toEqual(expected)
+})
+
 test.each([
     {   htmlString: "<body><a href='/one'>one</a><a href='/two'>two</a><a href='http://three.com/three'>three</a></body>",
         baseUrl: "base.dev",
