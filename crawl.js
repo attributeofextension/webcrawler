@@ -40,7 +40,6 @@ function addLinkToPages(baseURL, link, pages = {}) {
 }
 
 function crawlPage(baseURL, currentURL=baseURL, pages = {}, alreadyCrawledOrCurrentlyCrawling = []) {
-    console.log(`Attempting to crawl ${getURLStringNoProtocol(currentURL)}`)
     if(alreadyCrawledOrCurrentlyCrawling.findIndex(url => getURLStringNoProtocol(currentURL) === url) > -1) {
         return Promise.resolve([false, `Already crawled ${getURLStringNoProtocol(currentURL)}`])
     }
@@ -80,13 +79,6 @@ function crawlPage(baseURL, currentURL=baseURL, pages = {}, alreadyCrawledOrCurr
 
                     alreadyCrawledOrCurrentlyCrawling.push(getURLStringNoProtocol(currentURL))
                     Promise.all(links.map(link => crawlPage(baseURL, addPathnameToBaseURL(baseURL, link), pages, alreadyCrawledOrCurrentlyCrawling))).then(results => {
-                        results.forEach(result => {
-                            if (result.length === 2 && !result[0]) {
-                                console.error(result[1])
-                            } else if (result.length === 2) {
-                                console.log(result[1])
-                            }
-                        })
                         resolve([true, `Successfully crawled all links at ${getURLStringNoProtocol(currentURL)}`])
                     })
 

@@ -4,7 +4,7 @@ import { printReport} from "./report.js";
 
 function main() {
     const error_message = "Usage: npm run start [baseURL]"
-    if (argv.length === 3) {
+    if (argv.length >= 3) {
         console.log("Beginning crawl at " + argv[2])
         let pages = {}
         crawlPage(argv[2], argv[2], pages).then(result => {
@@ -18,10 +18,12 @@ function main() {
                 printReport(pages)
                 process.exit(0)
             } else {
-                throw Error(`The crawlPage Promise returned a result in the incorrect format! `)
+                console.error(`The crawlPage Promise returned a result in the incorrect format! ${result}`)
+                process.exit(1)
             }
         }).catch(err => {
             console.error(`An unexpected error occurred: ${err}`)
+            process.exit(1)
         })
     } else {
         console.error(error_message)
